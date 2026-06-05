@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>美股新股中心 · US IPO Center</title>
+<style>
+  /* ===== 系统字体(本地/部署都稳定,中文优先) ===== */
+  :root{
+    --bg:#0e1014;
+    --panel:#161922;
+    --panel-2:#1b1f2a;
+    --line:#262b37;
+    --line-soft:#1f2430;
+    --text:#e7eaf0;
+    --muted:#8a93a5;
+    --muted-2:#5e6677;
+    --accent:#4ea1ff;
+    --accent-soft:rgba(78,161,255,.12);
+    /* 默认中国习惯:红涨绿跌 */
+    --up:#ff4d4f;
+    --down:#1ec97b;
+    --flat:#8a93a5;
+    --chip:#222838;
+    --chip-on:#2a4a78;
+    --radius:10px;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,"Courier New",monospace;
+    --sans:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Heiti SC",SimHei,sans-serif;
+  }
+  body.us-color{ --up:#1ec97b; --down:#ff4d4f; } /* 切换成美股习惯:绿涨红跌 */
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 500px at 80% -10%, rgba(78,161,255,.07), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:13px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1480px;margin:0 auto;padding:18px 20px 60px}
+
+  /* ===== 头部 ===== */
+  header.top{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+    padding-bottom:14px;margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand h1{
+    font-size:20px;margin:0;letter-spacing:.5px;font-weight:700;
+    display:flex;align-items:center;gap:10px;
+  }
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 12px 2px rgba(78,161,255,.6)}
+  .brand .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .top-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .meta{font-size:12px;color:var(--muted);text-align:right;line-height:1.6}
+  .meta b{color:var(--text)}
+  .toggle{
+    display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);
+    cursor:pointer;user-select:none;
+    border:1px solid var(--line);border-radius:20px;padding:5px 11px;background:var(--panel);
+  }
+  .toggle .sw{width:30px;height:16px;border-radius:10px;background:#2a2f3d;position:relative;transition:.2s}
+  .toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+    border-radius:50%;background:#cdd3df;transition:.2s}
+  .toggle.on .sw{background:var(--accent)}
+  .toggle.on .sw::after{left:16px}
+
+  /* ===== 概览统计 ===== */
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .stat{
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
+    padding:11px 15px;min-width:128px;
+  }
+  .stat .k{font-size:11px;color:var(--muted);letter-spacing:.4px}
+  .stat .v{font-size:21px;font-family:var(--mono);font-weight:600;margin-top:3px}
+  .stat .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:3px}
+
+  /* ===== 筛选区 ===== */
+  .filters{
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:16px;
+  }
+  .frow{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .fgroup{display:flex;flex-direction:column;gap:7px}
+  .flabel{font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:var(--chip);color:var(--muted);
+    padding:5px 12px;border-radius:18px;font-size:12px;cursor:pointer;transition:.12s;
+    font-family:var(--sans);
+  }
+  .chip:hover{border-color:#3a4255;color:var(--text)}
+  .chip.on{background:var(--chip-on);border-color:var(--accent);color:#fff}
+  .search{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);padding:7px 11px;font-size:13px;width:200px;font-family:var(--sans);
+  }
+  .search:focus{outline:none;border-color:var(--accent)}
+  .range{display:flex;align-items:center;gap:6px}
+  .range input{
+    width:78px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);padding:7px 9px;font-size:12px;font-family:var(--mono);
+  }
+  .range input:focus{outline:none;border-color:var(--accent)}
+  .range span{color:var(--muted-2);font-size:12px}
+  .range .unit{color:var(--muted);font-size:11px}
+  .reset{
+    align-self:flex-end;background:transparent;border:1px solid var(--line);
+    color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;
+    font-family:var(--sans);
+  }
+  .reset:hover{color:var(--text);border-color:var(--accent)}
+
+  /* ===== 表格 ===== */
+  .tablebox{
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
+    overflow:auto;max-height:70vh;
+  }
+  table{border-collapse:separate;border-spacing:0;width:100%;min-width:1400px}
+  thead th{
+    position:sticky;top:0;z-index:5;
+    background:#13161e;color:var(--muted);font-weight:600;
+    font-size:11px;letter-spacing:.4px;text-align:right;
+    padding:11px 12px;white-space:nowrap;border-bottom:1px solid var(--line);
+    cursor:pointer;user-select:none;
+  }
+  thead th:hover{color:var(--text)}
+  thead th.l{text-align:left}
+  thead th .ar{color:var(--accent);margin-left:3px;font-size:10px}
+  tbody td{
+    padding:10px 12px;text-align:right;white-space:nowrap;
+    border-bottom:1px solid var(--line-soft);font-family:var(--mono);font-size:12.5px;
+  }
+  tbody td.l{text-align:left;font-family:var(--sans)}
+  tbody tr:hover{background:rgba(78,161,255,.05)}
+  tbody tr:last-child td{border-bottom:none}
+
+  /* 名称列 */
+  .nm{display:flex;flex-direction:column;line-height:1.35}
+  .nm .n1{color:var(--text);font-weight:600}
+  .nm .n2{color:var(--muted);font-size:11px}
+  /* 代码列 */
+  .code{font-family:var(--mono);color:#cfe2ff;font-weight:600}
+  /* 类型标签 */
+  .tag{
+    display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;
+    font-family:var(--sans);font-weight:600;
+  }
+  .tag.IPO{background:rgba(78,161,255,.15);color:#7fbcff}
+  .tag.SPAC{background:rgba(232,179,57,.15);color:#e8b339}
+  .tag.ETF{background:rgba(30,201,123,.15);color:#36d68f}
+  .tag.REIT{background:rgba(186,120,255,.15);color:#c79bff}
+  .tag.ADR{background:rgba(255,138,76,.15);color:#ff9a5e}
+
+  .up{color:var(--up)}
+  .down{color:var(--down)}
+  .flat{color:var(--flat)}
+  .streak{font-weight:700}
+  .dim{color:var(--muted-2)}
+
+  /* 状态 */
+  .state{padding:50px 20px;text-align:center;color:var(--muted)}
+  .state .big{font-size:15px;color:var(--text);margin-bottom:6px}
+  .banner{
+    background:rgba(232,179,57,.08);border:1px solid rgba(232,179,57,.3);
+    color:#e8c97a;padding:9px 14px;border-radius:8px;font-size:12px;margin-bottom:14px;
+    display:none;
+  }
+  .foot{margin-top:18px;color:var(--muted-2);font-size:11.5px;line-height:1.7}
+  .foot code{background:var(--panel-2);padding:1px 6px;border-radius:4px;color:#9fb6d8;font-family:var(--mono)}
+  .count{color:var(--muted);font-size:12px}
+  @media (max-width:640px){
+    .wrap{padding:12px}
+    table{min-width:1200px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1><span class="dot"></span>美股新股中心</h1>
+      <div class="sub">US IPO Center · 每日自动更新 · IPO / SPAC / ETF / REIT / ADR</div>
+    </div>
+    <div class="top-right">
+      <div class="meta">
+        数据更新:<b id="updatedAt">—</b><br>
+        共 <b id="totalCount">0</b> 只标的
+      </div>
+      <div class="toggle on" id="colorToggle" title="切换涨跌配色">
+        <span class="sw"></span><span id="colorLabel">红涨绿跌</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="banner" id="demoBanner">
+    ⚠️ 当前显示的是<b>样例数据</b>(未检测到 <code>data.json</code>)。部署后接入真实数据,此提示会自动消失。
+  </div>
+
+  <!-- 概览 -->
+  <div class="stats" id="statsBox"></div>
+
+  <!-- 筛选 -->
+  <div class="filters">
+    <div class="frow">
+      <div class="fgroup">
+        <div class="flabel">类型(可多选)</div>
+        <div class="chips" id="typeChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">上市时间</div>
+        <div class="chips" id="timeChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">市值区间(亿美元)</div>
+        <div class="range">
+          <input type="number" id="mcMin" placeholder="最小" />
+          <span>—</span>
+          <input type="number" id="mcMax" placeholder="最大" />
+          <span class="unit">亿</span>
+        </div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">发行价区间(美元)</div>
+        <div class="range">
+          <input type="number" id="ipMin" placeholder="最小" />
+          <span>—</span>
+          <input type="number" id="ipMax" placeholder="最大" />
+          <span class="unit">$</span>
+        </div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">搜索</div>
+        <input class="search" id="searchBox" placeholder="名称 / 代码…" />
+      </div>
+      <button class="reset" id="resetBtn">重置筛选</button>
+    </div>
+  </div>
+
+  <div class="count" id="resultCount"></div>
+
+  <!-- 表格 -->
+  <div class="tablebox">
+    <table>
+      <thead>
+        <tr id="headRow"></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    字段说明:累计涨幅 = 现价相对<b>发行价</b>;首日涨幅 = 上市首日收盘相对发行价;换手率 = 当日成交股数 / 流通股本;
+    连涨天数 = 截至最新交易日的连续上涨天数;市盈率为 TTM,亏损或缺失显示 "—"。<br>
+    市值 / 成交额单位为美元;数据每日由后台任务刷新一次。涨跌配色可点右上角切换(中国习惯红涨绿跌 / 美股习惯绿涨红跌)。
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   配置:列定义
+   ========================================================= */
+const COLUMNS = [
+  {key:'date',     label:'上市日期', align:'l', type:'date'},
+  {key:'name',     label:'名称',     align:'l', type:'name'},
+  {key:'symbol',   label:'代码',     align:'l', type:'code'},
+  {key:'type',     label:'类型',     align:'l', type:'tag'},
+  {key:'market_cap',label:'市值',    align:'r', type:'money'},
+  {key:'price',    label:'现价',     align:'r', type:'price'},
+  {key:'ipo_price',label:'发行价',   align:'r', type:'price'},
+  {key:'first_day_change',label:'首日涨幅', align:'r', type:'pct'},
+  {key:'cum_change',label:'累计涨幅', align:'r', type:'pct'},
+  {key:'day_change',label:'当日涨跌', align:'r', type:'pct'},
+  {key:'up_streak',label:'连涨天数', align:'r', type:'streak'},
+  {key:'volume',   label:'成交股',   align:'r', type:'shares'},
+  {key:'turnover', label:'成交额',   align:'r', type:'money'},
+  {key:'turnover_rate',label:'换手率', align:'r', type:'pct'},
+  {key:'pe',       label:'市盈率',   align:'r', type:'pe'},
+];
+
+const TYPES = ['IPO','SPAC','ETF','REIT','ADR'];
+const TIME_OPTS = [
+  {key:'all',  label:'全部', days:Infinity},
+  {key:'d',    label:'当日', days:0},
+  {key:'w',    label:'近一周', days:7},
+  {key:'m',    label:'近一月', days:30},
+];
+
+/* =========================================================
+   样例数据(部署接入 data.json 后会被真实数据替换)
+   ========================================================= */
+const SAMPLE = {
+  updated_at: new Date().toISOString(),
+  items: [
+    mk('2026-06-04','Helios Quantum','HQTM','IPO',  31.2,  19, 0.642,  3.2e9, 0.71, 0.028, 2, 5.2e6, 1.6e8, 0.061, 42.1),
+    mk('2026-06-04','Greenfield Acq. Corp III','GFAC','SPAC', 10.08, 10, 0.008, 2.5e8, 0.008, 0.001, 0, 4.1e5, 4.1e6, 0.016, null),
+    mk('2026-06-03','Nimbus Data REIT','NDRT','REIT', 24.6, 25, -0.012, 1.1e9, -0.016, -0.004, 0, 9.8e5, 2.4e7, 0.022, 18.6),
+    mk('2026-06-03','Aurora Biologics','ARBL','IPO', 14.8, 17, -0.118, 6.4e8, -0.129, -0.031, 0, 2.7e6, 4.0e7, 0.054, null),
+    mk('2026-06-02','Pan-Asia Semi ADR','PASM','ADR', 58.4, 46, 0.291, 9.7e9, 0.270, 0.012, 4, 3.3e6, 1.9e8, 0.018, 33.7),
+    mk('2026-06-02','Vertex Yield ETF','VYLD','ETF', 50.3, 50, 0.006, 2.0e8, 0.006, 0.002, 1, 1.2e5, 6.0e6, null, null),
+    mk('2026-05-30','Skyline Robotics','SKLR','IPO', 22.9, 21, 0.090, 1.8e9, 0.090, 0.044, 5, 6.1e6, 1.4e8, 0.073, 55.2),
+    mk('2026-05-29','Meridian Logistics','MRDL','IPO', 17.3, 20, -0.135, 8.2e8, -0.150, -0.018, 0, 1.9e6, 3.3e7, 0.041, null),
+    mk('2026-05-28','Cobalt Realty Trust','CBRT','REIT', 19.1, 18, 0.061, 5.5e8, 0.061, 0.009, 3, 7.4e5, 1.4e7, 0.029, 21.3),
+    mk('2026-05-22','Lumen Cloud','LMNC','IPO', 44.7, 28, 0.596, 6.1e9, 0.530, -0.022, 0, 4.8e6, 2.1e8, 0.039, 88.4),
+    mk('2026-05-20','Eastbridge Acq. Corp','EBAC','SPAC', 10.4, 10, 0.040, 3.1e8, 0.040, 0.000, 1, 2.0e5, 2.1e6, 0.009, null),
+    mk('2026-05-15','Tata Frontier ADR','TFRN','ADR', 11.6, 13, -0.108, 4.2e9, -0.108, 0.006, 2, 2.5e6, 2.9e7, 0.012, 24.9),
+  ]
+};
+function mk(date,name,symbol,type,price,ipo,cum,mc,fdc,dc,streak,vol,turn,tr,pe){
+  return {date,name,symbol,type,price,ipo_price:ipo,cum_change:cum,market_cap:mc,
+    first_day_change:fdc,day_change:dc,up_streak:streak,volume:vol,turnover:turn,
+    turnover_rate:tr,pe:pe};
+}
+
+/* =========================================================
+   状态
+   ========================================================= */
+let DATA = [];
+let refDate = new Date();
+const state = {
+  types:new Set(),          // 空 = 全部类型
+  time:'all',
+  mcMin:null, mcMax:null,   // 亿美元
+  ipMin:null, ipMax:null,
+  q:'',
+  sortKey:'date', sortDir:-1, // 默认按上市日期倒序
+};
+
+/* =========================================================
+   加载数据:优先 data.json,失败用样例
+   ========================================================= */
+async function load(){
+  try{
+    const res = await fetch('./data.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('no file');
+    const json = await res.json();
+    if(!json.items || !json.items.length) throw new Error('empty');
+    DATA = json.items;
+    refDate = json.updated_at ? new Date(json.updated_at) : new Date();
+    document.getElementById('updatedAt').textContent = fmtDateTime(refDate);
+  }catch(e){
+    DATA = SAMPLE.items;
+    refDate = new Date(SAMPLE.updated_at);
+    document.getElementById('updatedAt').textContent = fmtDateTime(refDate) + '(样例)';
+    document.getElementById('demoBanner').style.display = 'block';
+  }
+  document.getElementById('totalCount').textContent = DATA.length;
+  render();
+}
+
+/* =========================================================
+   渲染:表头 + 筛选控件 + 概览 + 表体
+   ========================================================= */
+function buildHead(){
+  const tr = document.getElementById('headRow');
+  tr.innerHTML = COLUMNS.map(c=>{
+    const arrow = state.sortKey===c.key ? `<span class="ar">${state.sortDir>0?'▲':'▼'}</span>` : '';
+    return `<th class="${c.align==='l'?'l':''}" data-key="${c.key}">${c.label}${arrow}</th>`;
+  }).join('');
+  tr.querySelectorAll('th').forEach(th=>{
+    th.onclick = ()=>{
+      const k = th.dataset.key;
+      if(state.sortKey===k) state.sortDir*=-1;
+      else { state.sortKey=k; state.sortDir = (k==='date'?-1:-1); }
+      render();
+    };
+  });
+}
+
+function buildFilters(){
+  const tc = document.getElementById('typeChips');
+  tc.innerHTML = TYPES.map(t=>`<span class="chip" data-t="${t}">${t}</span>`).join('');
+  tc.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick=()=>{
+      const t=ch.dataset.t;
+      if(state.types.has(t)) state.types.delete(t); else state.types.add(t);
+      render();
+    };
+  });
+  const wc = document.getElementById('timeChips');
+  wc.innerHTML = TIME_OPTS.map(o=>`<span class="chip" data-w="${o.key}">${o.label}</span>`).join('');
+  wc.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick=()=>{ state.time=ch.dataset.w; render(); };
+  });
+}
+
+function syncFilterUI(){
+  document.querySelectorAll('#typeChips .chip').forEach(ch=>{
+    ch.classList.toggle('on', state.types.has(ch.dataset.t));
+  });
+  document.querySelectorAll('#timeChips .chip').forEach(ch=>{
+    ch.classList.toggle('on', state.time===ch.dataset.w);
+  });
+}
+
+function applyFilters(){
+  const refTime = refDate.getTime();
+  const opt = TIME_OPTS.find(o=>o.key===state.time);
+  return DATA.filter(d=>{
+    if(state.types.size && !state.types.has(d.type)) return false;
+    // 时间
+    if(opt && opt.days!==Infinity){
+      const dd = new Date(d.date+'T00:00:00');
+      const refDay = new Date(refDate.toISOString().slice(0,10)+'T00:00:00');
+      const diff = Math.round((refDay - dd)/86400000);
+      if(opt.days===0){ if(diff!==0) return false; }
+      else if(diff<0 || diff>opt.days) return false;
+    }
+    // 市值(亿美元 -> 美元)
+    const mcAshi = (d.market_cap||0)/1e8;
+    if(state.mcMin!=null && mcAshi < state.mcMin) return false;
+    if(state.mcMax!=null && mcAshi > state.mcMax) return false;
+    // 发行价
+    if(state.ipMin!=null && (d.ipo_price||0) < state.ipMin) return false;
+    if(state.ipMax!=null && (d.ipo_price||0) > state.ipMax) return false;
+    // 搜索
+    if(state.q){
+      const q=state.q.toLowerCase();
+      if(!(d.name||'').toLowerCase().includes(q) && !(d.symbol||'').toLowerCase().includes(q))
+        return false;
+    }
+    return true;
+  });
+}
+
+function sortRows(rows){
+  const k=state.sortKey, dir=state.sortDir;
+  return rows.slice().sort((a,b)=>{
+    let va=a[k], vb=b[k];
+    if(k==='date'){ va=a.date; vb=b.date; return (va<vb?-1:va>vb?1:0)*dir; }
+    if(k==='name'||k==='symbol'||k==='type'){
+      va=(va||'').toString(); vb=(vb||'').toString();
+      return va.localeCompare(vb)*dir;
+    }
+    va = (va==null?-Infinity:va); vb=(vb==null?-Infinity:vb);
+    return (va-vb)*dir;
+  });
+}
+
+function render(){
+  syncFilterUI();
+  buildHead();
+  const rows = sortRows(applyFilters());
+  renderStats(rows);
+  renderBody(rows);
+  document.getElementById('resultCount').textContent =
+    `筛选结果:${rows.length} 只 / 共 ${DATA.length} 只`;
+}
+
+function renderStats(rows){
+  const n = rows.length;
+  const upFirst = rows.filter(r=>r.first_day_change>0).length;
+  const upCum = rows.filter(r=>r.cum_change>0).length;
+  const avgFd = n? rows.reduce((s,r)=>s+(r.first_day_change||0),0)/n : 0;
+  const box=document.getElementById('statsBox');
+  box.innerHTML = `
+    ${stat('标的数量', n, '只')}
+    ${stat('首日上涨', upFirst, `/${n}`, upFirst>=n-upFirst?'up':'down')}
+    ${stat('累计上涨', upCum, `/${n}`, upCum>=n-upCum?'up':'down')}
+    ${stat('平均首日涨幅', (avgFd*100).toFixed(1)+'%', '', avgFd>=0?'up':'down')}
+  `;
+}
+function stat(k,v,small,cls){
+  return `<div class="stat"><div class="k">${k}</div>
+    <div class="v ${cls||''}">${v}<small>${small||''}</small></div></div>`;
+}
+
+function renderBody(rows){
+  const tb=document.getElementById('tbody');
+  if(!rows.length){
+    tb.innerHTML = `<tr><td colspan="${COLUMNS.length}">
+      <div class="state"><div class="big">没有符合条件的标的</div>
+      <div>试试放宽筛选条件,或点击「重置筛选」。</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(r=>{
+    return '<tr>'+COLUMNS.map(c=>cell(r,c)).join('')+'</tr>';
+  }).join('');
+}
+
+function cell(r,c){
+  const v=r[c.key];
+  const L = c.align==='l'?' l':'';
+  switch(c.type){
+    case 'date':  return td(v, L);
+    case 'name':  return td(`<div class="nm"><span class="n1">${esc(r.name)}</span></div>`, L);
+    case 'code':  return td(`<span class="code">${esc(r.symbol)}</span>`, L);
+    case 'tag':   return td(`<span class="tag ${r.type}">${r.type}</span>`, L);
+    case 'price': return td(v==null?'—':'$'+num(v,2), L);
+    case 'money': return td(money(v), L);
+    case 'shares':return td(shares(v), L);
+    case 'pct':   return td(pct(v), L+' '+pctCls(v));
+    case 'streak':return td(streak(v), L);
+    case 'pe':    return td(pe(v), L+(v!=null&&v>0?'':' dim'));
+    default:      return td(v, L);
+  }
+}
+function td(html,cls){ return `<td class="${cls||''}">${html}</td>`; }
+
+/* ===== 格式化 ===== */
+function num(n,d){ return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function money(n){
+  if(n==null) return '—';
+  if(n>=1e8) return (n/1e8).toFixed(2)+'亿';
+  if(n>=1e4) return (n/1e4).toFixed(1)+'万';
+  return num(n,0);
+}
+function shares(n){
+  if(n==null) return '—';
+  if(n>=1e8) return (n/1e8).toFixed(2)+'亿';
+  if(n>=1e4) return (n/1e4).toFixed(1)+'万';
+  return num(n,0);
+}
+function pct(x){
+  if(x==null) return '—';
+  const s=(x*100).toFixed(2)+'%';
+  return (x>0?'+':'')+s;
+}
+function pctCls(x){ return x==null?'dim':(x>0?'up':(x<0?'down':'flat')); }
+function streak(n){
+  if(n==null||n===0) return '<span class="dim">0</span>';
+  return `<span class="streak up">${n}</span>`;
+}
+function pe(v){
+  if(v==null) return '<span class="dim">—</span>';
+  if(v<=0) return '<span class="dim">亏损</span>';
+  return num(v,1);
+}
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function fmtDateTime(d){
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/* =========================================================
+   交互绑定
+   ========================================================= */
+function bind(){
+  document.getElementById('searchBox').oninput = e=>{ state.q=e.target.value.trim(); render(); };
+  const mn=(id,key)=>document.getElementById(id).oninput=e=>{
+    const v=e.target.value; state[key]= v===''?null:parseFloat(v); render();
+  };
+  mn('mcMin','mcMin'); mn('mcMax','mcMax'); mn('ipMin','ipMin'); mn('ipMax','ipMax');
+  document.getElementById('resetBtn').onclick=()=>{
+    state.types.clear(); state.time='all';
+    state.mcMin=state.mcMax=state.ipMin=state.ipMax=null; state.q='';
+    ['mcMin','mcMax','ipMin','ipMax','searchBox'].forEach(id=>document.getElementById(id).value='');
+    render();
+  };
+  // 涨跌配色切换
+  const t=document.getElementById('colorToggle');
+  t.onclick=()=>{
+    document.body.classList.toggle('us-color');
+    const us=document.body.classList.contains('us-color');
+    t.classList.toggle('on', !us);
+    document.getElementById('colorLabel').textContent = us?'绿涨红跌':'红涨绿跌';
+  };
+}
+
+/* 启动 */
+buildFilters();
+bind();
+load();
+</script>
+</body>
+</html>
