@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-09T09:29:20.252Z",
+  "updated_at": "2026-08-10T10:08:41.986Z",
   "count": 30,
   "items": [
     {
@@ -193,7 +193,7 @@
       "date": "2026-07-29",
       "name": "IMC Rare Earths Ltd",
       "symbol": "IMC",
-      "type": "IPO",
+      "type": "ADR",
       "price": 7.68,
       "ipo_price": 5,
       "market_cap": null,
