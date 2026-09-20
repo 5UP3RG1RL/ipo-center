@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-19T12:46:20.993Z",
+  "updated_at": "2026-09-20T13:18:46.134Z",
   "count": 30,
   "items": [
     {
@@ -510,7 +510,7 @@
       "volume": null,
       "turnover": null,
       "turnover_rate": null,
-      "pe": null
+      "pe": 113.08
     }
   ]
 }
